@@ -1,12 +1,12 @@
 # mpd-wallpaper
 Ever wanted to display currently playing song's artwork as a wallpaper? No?.. Well, you can now, so why not try it!
 
-This script takes the currently playing track in MPD and uses some magick to set it's artwork as the wallpaper of your desktop.
-It takes fallback image and bar size as arguments.
+This script runs as a daemon which takes the currently playing track in MPD and uses some (image)magick to set it's artwork
+as the wallpaper of your desktop.
 
 It's kinda clever, though, so unlike kunst it gets your music path from the mpd config.
 
-But it expects you to have a bar at the top, so it's kinda dumb yet.
+But it expects you to have a bar at the top, so it's kinda dumb, too.
 
 # Introduction
 One day I was thinking something like "Huh, it'd be cool to have some kind of album art in ncmpcpp... But setting up image 
