@@ -32,3 +32,6 @@ png or jpg, since xwallpaper can't work with those.
 For example, 
 
 `mpd-wallpaper ~/Pictures/Wallpapers/GiTS/1.png 28`
+
+# Exapmle
+<p align="center"><img src="example.png"></p>
