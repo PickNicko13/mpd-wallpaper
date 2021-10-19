@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# disable output if glob not matched
+shopt -s nullglob
+
+musicpath=$( grep 'music_directory' $HOME/.mpd/mpd.conf | cut -f2 -d' ' | sed "s+\"++g; s+~+$HOME+" )
+# edit to the desired ones
+extensions=( .png .jpg .jpeg .webp .PNG .JPG .JPEG .WEBP )
+covernames=({Cover,cover,Cover1,cover1,Front,front}.{png,jpg,jpeg,webp,PNG,JPG,JPEG,WEBP})
+
+# search for well-named covers
+for covername in ${covernames[*]}; do
+	if [ -f "$path$covername" ]; then
+		echo "$path$covername"
+		exit 0
+	fi
+done
+# if not found, search for any covers as files
+potential_covers=""
+for ext in ${extensions[*]}; do
+	potential_covers=( "$path"*"$ext" )
+	if (( ${#potential_covers[@]} )); then
+		echo ${potential_covers[0]}
+		exit 0
+	fi
+done
+# try to extract an embedded one
+# but if no cover art found even here, error out
+if ! ( kid3-cli -c get "$track_file" | grep -q Picture ); then
+	exit 1
+fi
+kid3-cli -c 'get picture:/tmp/embedded_cover.jpg' "$track_file"
+# you may want to change this
+echo "/tmp/embedded_cover.jpg"
+exit 0

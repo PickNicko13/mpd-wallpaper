@@ -8,84 +8,75 @@ extensions=( .png .jpg .jpeg .webp .PNG .JPG .JPEG .WEBP )
 covernames=({Cover,cover,Cover1,cover1,Front,front}.{png,jpg,jpeg,webp,PNG,JPG,JPEG,WEBP})
 previous_cover_file=""
 
-set_cover(){
+get_cover(){
 	cover_file=""
 	# search for well-named covers
 	for covername in ${covernames[*]}; do
 		if [ -f "$path$covername" ]; then
 			cover_file="$path$covername"
 			echo $(date '+%H:%M:%S') found artwork in: "$cover_file"
-			break
+			return 0
 		fi
 	done
 	# if not found, search for any covers as files
-	if [ -z "$cover_file"  ]; then
-		# this part is retarded
-		potential_covers=""
-		for ext in ${extensions[*]}; do
-			potential_covers=( "$path"*"$ext" )
-			if (( ${#potential_covers[@]} )); then
-				cover_file=${potential_covers[0]}
-				echo $(date '+%H:%M:%S') found artwork in: "$cover_file"
-				break
-			fi
-		done
+	# this part is retarded
+	potential_covers=""
+	for ext in ${extensions[*]}; do
+		potential_covers=( "$path"*"$ext" )
+		if (( ${#potential_covers[@]} )); then
+			cover_file=${potential_covers[0]}
+			echo $(date '+%H:%M:%S') found artwork in: "$cover_file"
+			return 0
+		fi
+	done
+	# check if embedded cover exists before proceeding
+	if ! ( kid3-cli -c get "$track_file" | grep -q Picture ); then
+		echo $(date '+%H:%M:%S') "fix needed: \"$track_file\""
+		echo $(date '+%H:%M:%S') "fix needed: \"$track_file\"" >> ~/broken.txt
+		return 1
 	fi
-	# if not found, try to extract an embedded one
-	if [ -z "$cover_file"  ]; then
-		# if no cover art found even here
-		if ! ( kid3-cli -c get "$track_file" | grep -q Picture ); then
-			echo $(date '+%H:%M:%S') "fix needed: \"$track_file\""
-			echo $(date '+%H:%M:%S') "fix needed: \"$track_file\"" >> ~/broken.txt
-			feh --no-fehbg --bg-center "$1"
+	# prevent filename check and instead check filesize
+	previous_cover_file=""
+	echo $(date '+%H:%M:%S') found embedded artwork in: "$track_file"
+	kid3-cli -c 'get picture:/tmp/new_embedded_cover.jpg' "$track_file"
+	# check if ever extracted before
+	if [ -f /tmp/embedded_cover.jpg ]; then
+		# if new size is the same
+		if [ $(du -b -s /tmp/embedded_cover.jpg | cut -f1) \
+			== $(du -b -s /tmp/new_embedded_cover.jpg | cut -f1) ] ;then
+			echo $(date '+%H:%M:%S') same embedded cover
+			rm /tmp/new_embedded_cover.jpg
 			return 1
 		fi
-		previous_cover_file=""
-		echo $(date '+%H:%M:%S') found embedded artwork in: "$track_file"
-		kid3-cli -c 'get picture:/tmp/new_embedded_cover.jpg' "$track_file"
-		if [ -f /tmp/embedded_cover.jpg ]; then
-			if [ $(du -b -s /tmp/embedded_cover.jpg | cut -f1) \
-				== $(du -b -s /tmp/new_embedded_cover.jpg | cut -f1) ] ;then
-				echo $(date '+%H:%M:%S') same embedded cover
-				rm /tmp/new_embedded_cover.jpg
-				return 0
-			fi
+	fi
+	mv /tmp/new_embedded_cover.jpg /tmp/embedded_cover.jpg
+	cover_file="/tmp/embedded_cover.jpg"
+
+	return 0
+}
+
+set_wallpaper(){
+	if get_cover; then
+		# avoid redoing what's already done
+		if [ "$previous_cover_file" == "$cover_file" ]; then
+			echo $(date '+%H:%M:%S') "same cover art"
+			return 1
 		fi
-		mv /tmp/new_embedded_cover.jpg /tmp/embedded_cover.jpg
-		cover_file="/tmp/embedded_cover.jpg"
+		previous_cover_file="$cover_file"
+		#echo "wud $previous_cover_file"
+		# transformations for better visuals
+		magick "$cover_file" -filter sinc -resize $resolution^ \
+		   -gravity Center -crop $resolution+0+0 -blur 0x16 -level 0%,200% /tmp/low_layer.bmp
+		magick "$cover_file" -filter sinc -resize $subresolution \
+			-background none -compose Copy -gravity south -extent $resolution /tmp/high_layer.bmp
+		magick /tmp/{low,high}_layer.bmp -background None -layers Flatten \
+			-define png:compression-level=0 /tmp/background.png
+		# remove temporary files
+		rm /tmp/{low,high}_layer.bmp
+		feh --no-fehbg --bg-center "/tmp/background.png"
+	else
+		feh --no-fehbg --bg-center "$1"
 	fi
-
-	# by this moment cover_file must not be empty
-	if [ -z "$cover_file"  ]; then
-		echo $(date '+%H:%M:%S') "WTF: \"$track_file\""
-		echo $(date '+%H:%M:%S') "WTF: \"$track_file\"" >> ~/broken.txt
-		# feh --no-fehbg --bg-center "$1"
-		# uncomment the feh line and comment the xwallpaper one
-		# if you want to use a fallback image that's not in png or jpg format
-		xwallpaper --center "$1"
-		return 2
-	fi
-
-	# avoid redoing what's already done
-	if [ "$previous_cover_file" == "$cover_file" ]; then
-		echo $(date '+%H:%M:%S') "same cover art"
-		return 0
-	fi
-	previous_cover_file="$cover_file"
-
-	# scale and convert to bmp
-	# change the values to the appropriate ones
-
-	magick "$cover_file" -filter sinc -resize $resolution^ \
-	   -gravity Center -crop $resolution+0+0 -blur 0x16 -level 0%,200% /tmp/low_layer.bmp
-	magick "$cover_file" -filter sinc -resize $subresolution \
-		-background none -compose Copy -gravity south -extent $resolution /tmp/high_layer.bmp
-	magick /tmp/{low,high}_layer.bmp -background None -layers Flatten \
-		-define png:compression-level=0 /tmp/background.png
-	rm /tmp/{low,high}_layer.bmp
-
-	# finally, set the background
-	xwallpaper --center "/tmp/background.png"
 }
 
 # not enough arguments given
@@ -117,7 +108,7 @@ while true; do
 		path="${track_file%/*}/"
 
 		starttime=$(date +'%s.%N')
-		set_cover
+		set_wallpaper
 		echo took $(echo "scale=9;$(date +'%s.%N')-$starttime" | bc)s
 	# else
 	#	echo $(date '+%H:%M:%S') track not changed
