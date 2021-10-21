@@ -65,10 +65,10 @@ set_wallpaper(){
 		previous_cover_file="$cover_file"
 		#echo "wud $previous_cover_file"
 		# transformations for better visuals
-		magick "$cover_file" -filter sinc -resize $resolution^ \
-		   -gravity Center -crop $resolution+0+0 -blur 0x16 -level 0%,200% /tmp/low_layer.bmp
-		magick "$cover_file" -filter sinc -resize $subresolution \
-			-background none -compose Copy -gravity south -extent $resolution /tmp/high_layer.bmp
+		magick "$cover_file" -resize $resolution^ -gravity Center \
+			-crop $resolution+0+0 -blur 0x16 -level 0%,180% /tmp/low_layer.bmp
+		magick "$cover_file" -resize $subresolution -background none \
+			-compose Copy -gravity south -extent $resolution /tmp/high_layer.bmp
 		magick /tmp/{low,high}_layer.bmp -background None -layers Flatten \
 			-define png:compression-level=0 /tmp/background.png
 		# remove temporary files
