@@ -8,6 +8,9 @@ extensions=( .png .jpg .jpeg .webp .PNG .JPG .JPEG .WEBP )
 covernames=({Cover,cover,Cover1,cover1,Front,front}.{png,jpg,jpeg,webp,PNG,JPG,JPEG,WEBP})
 previous_cover_file=""
 
+# 0 if cover found and change needed
+# 1 if not needed
+# 2 if error occured
 get_cover(){
 	cover_file=""
 	# search for well-named covers
@@ -33,38 +36,40 @@ get_cover(){
 	if ! ( kid3-cli -c get "$track_file" | grep -q Picture ); then
 		echo $(date '+%H:%M:%S') "fix needed: \"$track_file\""
 		echo $(date '+%H:%M:%S') "fix needed: \"$track_file\"" >> ~/broken.txt
-		return 1
+		return 2
 	fi
-	# prevent filename check and instead check filesize
-	previous_cover_file=""
 	echo $(date '+%H:%M:%S') found embedded artwork in: "$track_file"
 	kid3-cli -c 'get picture:/tmp/new_embedded_cover.jpg' "$track_file"
 	# check if ever extracted before
 	if [ -f /tmp/embedded_cover.jpg ]; then
-		# if new size is the same
-		if [ $(du -b -s /tmp/embedded_cover.jpg | cut -f1) \
-			== $(du -b -s /tmp/new_embedded_cover.jpg | cut -f1) ] ;then
+		# if previous cover was embedded AND new size is the same
+		if [ "$previous_cover_file" == '/tmp/embedded_cover.jpg' ] && \
+			[ $(du -b -s /tmp/embedded_cover.jpg | cut -f1) \
+		   	== $(du -b -s /tmp/new_embedded_cover.jpg | cut -f1) ]; then
 			echo $(date '+%H:%M:%S') same embedded cover
 			rm /tmp/new_embedded_cover.jpg
 			return 1
+		else
+			cover_file="/tmp/embedded_cover.jpg"
+			mv /tmp/new_embedded_cover.jpg /tmp/embedded_cover.jpg
+			return 0
 		fi
 	fi
-	mv /tmp/new_embedded_cover.jpg /tmp/embedded_cover.jpg
-	cover_file="/tmp/embedded_cover.jpg"
 
-	return 0
+	echo $(date '+%H:%M:%S') "shouldn\'t have ever got here on file: \"$track_file\"" >> ~/broken.txt
+	return 2
 }
 
 set_wallpaper(){
 	if get_cover; then
+		# comment the line below if you don't want a notification on song change
+		dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
 		# avoid redoing what's already done
 		if [ "$previous_cover_file" == "$cover_file" ]; then
 			echo $(date '+%H:%M:%S') "same cover art"
 			return 1
 		fi
 		previous_cover_file="$cover_file"
-		# comment the line below if you don't want a notification on song change
-		dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
 		# transformations for better visuals
 		magick  \
 			\( "$cover_file" -resize $resolution^ -gravity Center -crop $resolution+0+0 -blur 0x12 -level 0%,180% +repage \) \
