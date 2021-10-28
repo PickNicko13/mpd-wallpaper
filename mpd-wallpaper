@@ -8,6 +8,23 @@ extensions=( .png .jpg .jpeg .webp .PNG .JPG .JPEG .WEBP )
 covernames=({Cover,cover,Cover1,cover1,Front,front}.{png,jpg,jpeg,webp,PNG,JPG,JPEG,WEBP})
 previous_cover_file=""
 
+same_cover(){
+	# cover path is the same
+	if [ "$previous_cover_file" == "$cover_file" ]; then
+		# separate file
+		if [ "$cover_file" != '/tmp/embedded_cover.jpg' ]; then
+			return 0;
+		# ever extracted before, previous cover was embedded and new size is the same
+		elif [ -f /tmp/embedded_cover.jpg ] && \
+				[ "$previous_cover_file" == '/tmp/embedded_cover.jpg' ] && \
+				[ $(du -b -s /tmp/embedded_cover.jpg | cut -f1) \
+			   	== $(du -b -s /tmp/new_embedded_cover.jpg | cut -f1) ]; then
+			return 0
+		fi
+	fi
+	return 1
+}
+
 get_cover(){
 	cover_file=""
 	# search for well-named covers
@@ -29,40 +46,20 @@ get_cover(){
 			return 0
 		fi
 	done
-	# check if embedded cover exists before proceeding
-	if ! ( kid3-cli -c get "$track_file" | grep -q Picture ); then
-		echo $(date '+%H:%M:%S') "fix needed: \"$track_file\""
-		echo $(date '+%H:%M:%S') "fix needed: \"$track_file\"" >> ~/broken.txt
-		return 1
+	# embedded cover exists
+	if ( kid3-cli -c get "$track_file" | grep -q Picture ); then
+		echo $(date '+%H:%M:%S') found embedded artwork in: "$track_file"
+		kid3-cli -c 'get picture:/tmp/new_embedded_cover.jpg' "$track_file"
+		cover_file="/tmp/embedded_cover.jpg"
+		return 0
 	fi
-	echo $(date '+%H:%M:%S') found embedded artwork in: "$track_file"
-	kid3-cli -c 'get picture:/tmp/new_embedded_cover.jpg' "$track_file"
-	cover_file="/tmp/embedded_cover.jpg"
-	return 0
+
+	echo $(date '+%H:%M:%S') "fix needed: \"$track_file\""
+	echo $(date '+%H:%M:%S') "fix needed: \"$track_file\"" >> ~/broken.txt
+	return 1
 }
 
 set_wallpaper(){
-	if get_cover; then
-		# comment the line below if you don't want a notification on song change
-		dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
-		# avoid redoing what's already done for separate files
-		# if previous file is the same and previous was not embedded
-		if [ "$previous_cover_file" == "$cover_file" ] && \
-			[ "$cover_file" != '/tmp/embedded_cover.jpg' ]; then
-			echo $(date '+%H:%M:%S') "same cover art"
-			return 1
-		fi
-		# avoid redoing what's already done for embedded artwork
-		# if ever extracted before, previous cover was embedded and new size is the same
-		if [ -f /tmp/embedded_cover.jpg ] && \
-				[ "$previous_cover_file" == '/tmp/embedded_cover.jpg' ] && \
-				[ $(du -b -s /tmp/embedded_cover.jpg | cut -f1) \
-			   	== $(du -b -s /tmp/new_embedded_cover.jpg | cut -f1) ]; then
-			echo $(date '+%H:%M:%S') same embedded cover
-			rm /tmp/new_embedded_cover.jpg
-			return 1
-		fi
-		previous_cover_file="$cover_file"
 		# transformations for better visuals
 		magick  \
 			\( "$cover_file" -resize $resolution^ -gravity Center -crop $resolution+0+0 -blur 0x12 -level 0%,180% +repage \) \
@@ -70,9 +67,6 @@ set_wallpaper(){
 			-layers Flatten -define png:compression-level=0 /tmp/background.png
 		# set wallpaper
 		feh --no-fehbg --bg-center "/tmp/background.png"
-	else
-		feh --no-fehbg --bg-center "$1"
-	fi
 }
 
 # not enough arguments given
@@ -103,8 +97,25 @@ while true; do
 		path="${track_file%/*}/"
 
 		starttime=$(date +'%s.%N')
-		set_wallpaper
-		echo took $(echo "scale=9;$(date +'%s.%N')-$starttime" | bc)s
+		if get_cover; then
+			if same_cover; then
+				echo $(date '+%H:%M:%S') "same cover art"
+				# comment the line below if you don't want a notification on song change
+				dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
+			else
+				if [ "$cover_file" == '/tmp/embedded_cover.jpg' ]; then
+					mv /tmp/new_embedded_cover.jpg /tmp/embedded_cover.jpg
+				fi
+				# comment the line below if you don't want a notification on song change
+				dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
+				set_wallpaper
+			fi
+		else
+			dunstify -u high --replace=169 "TRACK ADDED TO THE broken.txt"
+			feh --no-fehbg --bg-center "$1"
+		fi
+		previous_cover_file="$cover_file"
+		echo took $(echo "scale=6;$(date +'%s.%N')-$starttime" | bc)s
 	fi
 	mpc idle > /dev/null
 done
