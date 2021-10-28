@@ -38,31 +38,28 @@ get_cover(){
 	echo $(date '+%H:%M:%S') found embedded artwork in: "$track_file"
 	kid3-cli -c 'get picture:/tmp/new_embedded_cover.jpg' "$track_file"
 	cover_file="/tmp/embedded_cover.jpg"
-	# if ever extracted before, previous cover was embedded and new size is the same
-	if [ -f /tmp/embedded_cover.jpg ] && \
-			[ "$previous_cover_file" == '/tmp/embedded_cover.jpg' ] && \
-			[ $(du -b -s /tmp/embedded_cover.jpg | cut -f1) \
-		   	== $(du -b -s /tmp/new_embedded_cover.jpg | cut -f1) ]; then
-		echo $(date '+%H:%M:%S') same embedded cover
-		rm /tmp/new_embedded_cover.jpg
-		return 0
-	else
-		mv /tmp/new_embedded_cover.jpg /tmp/embedded_cover.jpg
-		return 0
-	fi
-
-	echo $(date '+%H:%M:%S') "shouldn\'t have ever got here on file: \"$track_file\"" >> ~/broken.txt
-	return 1
+	return 0
 }
 
 set_wallpaper(){
 	if get_cover; then
 		# comment the line below if you don't want a notification on song change
 		dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
-		# avoid redoing what's already done
+		# avoid redoing what's already done for separate files
+		# if previous file is the same and previous was not embedded
 		if [ "$previous_cover_file" == "$cover_file" ] && \
 			[ "$cover_file" != '/tmp/embedded_cover.jpg' ]; then
 			echo $(date '+%H:%M:%S') "same cover art"
+			return 1
+		fi
+		# avoid redoing what's already done for embedded artwork
+		# if ever extracted before, previous cover was embedded and new size is the same
+		if [ -f /tmp/embedded_cover.jpg ] && \
+				[ "$previous_cover_file" == '/tmp/embedded_cover.jpg' ] && \
+				[ $(du -b -s /tmp/embedded_cover.jpg | cut -f1) \
+			   	== $(du -b -s /tmp/new_embedded_cover.jpg | cut -f1) ]; then
+			echo $(date '+%H:%M:%S') same embedded cover
+			rm /tmp/new_embedded_cover.jpg
 			return 1
 		fi
 		previous_cover_file="$cover_file"
