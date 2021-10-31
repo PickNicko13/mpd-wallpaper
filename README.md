@@ -15,18 +15,25 @@ And just like that I started writing this script. But then I also thought that i
 and make it launch at system startup, so here we are.
 
 # Requirements
+- bash
+- dunst (optional, used for notifications)
 - feh
 - imagemagick
 - kid3-cli
 - mpc
 - mpd (duh)
+- xorg-xdpyinfo
 
 # Usage
-`mpd-wallpaper fallback.png bar_size`
+`mpd-wallpaper -f fallback.png [-b bottom_indent] [-B border] [-n] [-t top_indent]`
 
 For example, 
 
-`mpd-wallpaper ~/Pictures/Wallpapers/GiTS/1.png 28`
+`mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 28 -B 6`
 
-# Exapmle
-<p align="center"><img src="example.png"></p>
+# Exapmles
+
+<p align="center"><img src="example.png">desktop</p>
+
+
+<p align="center"><img src="ncmpcpp.png">ncmpcpp</p>

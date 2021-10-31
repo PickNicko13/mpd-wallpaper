@@ -6,7 +6,58 @@ shopt -s nullglob
 # init arrays
 extensions=( .png .jpg .jpeg .webp .PNG .JPG .JPEG .WEBP )
 covernames=({Cover,cover,Cover1,cover1,Front,front}.{png,jpg,jpeg,webp,PNG,JPG,JPEG,WEBP})
-previous_cover_file=""
+border=0
+border_color="#ffffff"
+bottom_indent=0
+top_indent=0
+fallback_image=0
+notify=false
+
+resolution=$( xdpyinfo | grep -P -o '[0-9]*x[0-9]* pixels' | cut -f1 -d' ' )
+width=${resolution%x*}
+height=${resolution#*x}
+musicpath=$( grep 'music_directory' $HOME/.mpd/mpd.conf | cut -f2 -d' ' | sed "s+\"++g ; s+~+$HOME+" )
+
+usage(){
+echo "Usage:  $0 -f fallback_image [-b bottom_indent] [-B border] [-t top_indent]"
+echo "	-b: indent bottom_indent pixels to accomodate for the bottom bar. Default: 0"
+echo "	-B: add the specified amount of pixels around the cover to separate it. Default: 0"
+echo "	-t: indent top_indent pixels to accomodate for the bar. Default: 0"
+}
+
+while getopts ":hnb:B:f:t:" arg; do
+	case $arg in
+		b) # bottom bar size
+			bottom_indent=${OPTARG}
+		;;
+		B) # border size
+			border=${OPTARG}
+		;;
+		f) # fallback image
+			fallback_image=${OPTARG}
+			# file doesn't exist
+			if ! [ -f "$fallback_image" ]; then
+				echo couldn\'t open \""$fallback_image"\"
+				exit 1
+			fi
+		;;
+		n) # enable notifications
+			notify=true
+		;;
+		t) # top bar size
+			top_indent=${OPTARG}
+		;;
+		h | *) # Display help.
+			usage
+			exit 0
+		;;
+	esac
+done
+
+if [ $fallback_image == 0 ]; then
+	usage
+	exit 1
+fi
 
 same_cover(){
 	# cover path is the same
@@ -61,31 +112,18 @@ get_cover(){
 
 set_wallpaper(){
 		# transformations for better visuals
+		if [ $border != 0 ]; then
+			# these parameters were chosen by trial and error, but may not work for you
+			# feel free to play with image size and color count
+			border_color=$(convert "$cover_file" -scale 200x200! +dither -colors 50 -format "%c" histogram:info: | sort | cut -d' ' -f 7 | head -n 1)
+		fi
 		magick  \
-			\( "$cover_file" -resize $resolution^ -gravity Center -crop $resolution+0+0 -blur 0x12 -level 0%,180% +repage \) \
-			\( "$cover_file" -resize $subresolution -background none -gravity south -extent $resolution \) \
-			-layers Flatten -define png:compression-level=0 /tmp/background.png
+			\( "$cover_file" -resize 300x300 -blur 0x2 -level 0%,250% -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
+			\( "$cover_file" -resize $(($width-2*$border))x$(($height-$top_indent-$bottom_indent-2*$border)) -bordercolor "$border_color" -border $border -background none -gravity south -extent $resolution-0-$bottom_indent \) \
+			-layers Flatten -quality 0 /tmp/background.png
 		# set wallpaper
 		feh --no-fehbg --bg-center "/tmp/background.png"
 }
-
-# not enough arguments given
-if [ -z "$2" ]; then
-	echo "	Usage:
-	$0 fallback/image bar_height
-	e.g.: $0 \$HOME/Pictures/Wallpapers/GiTS/1.png 24"
-	exit 1
-fi
-# file doesn't exist
-if ! [ -f "$1" ]; then
-	echo couldn\'t open \""$1"\"
-	exit 1
-fi
-
-resolution=$( xdpyinfo | grep -P -o '[0-9]*x[0-9]* pixels' | cut -f1 -d' ' )
-subresolution=${resolution%x*}x$(( ${resolution##*x} - $2 ))
-musicpath=$( grep 'music_directory' $HOME/.mpd/mpd.conf | cut -f2 -d' ' | sed "s+\"++g; s+~+$HOME+" )
-echo -e "resolution: $resolution\nsubresolution: $subresolution"
 
 while true; do
 	newtrack=$(mpc -f '%file%' current)
@@ -100,19 +138,23 @@ while true; do
 		if get_cover; then
 			if same_cover; then
 				echo $(date '+%H:%M:%S') "same cover art"
-				# comment the line below if you don't want a notification on song change
-				dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
+				if $notify; then
+					dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
+				fi
 			else
 				if [ "$cover_file" == '/tmp/embedded_cover.jpg' ]; then
 					mv /tmp/new_embedded_cover.jpg /tmp/embedded_cover.jpg
 				fi
-				# comment the line below if you don't want a notification on song change
-				dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
+				if $notify; then
+					dunstify -u low --replace=169 -I "$cover_file" "$(mpc current)"
+				fi
 				set_wallpaper
 			fi
 		else
-			dunstify -u high --replace=169 "TRACK ADDED TO THE broken.txt"
-			feh --no-fehbg --bg-center "$1"
+			if $notify; then
+				dunstify -u critical --replace=169 "TRACK ADDED TO THE broken.txt"
+			fi
+			feh --no-fehbg --bg-center "$fallback_image"
 		fi
 		previous_cover_file="$cover_file"
 		echo took $(echo "scale=6;$(date +'%s.%N')-$starttime" | bc)s
