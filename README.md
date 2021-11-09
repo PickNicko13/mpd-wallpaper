@@ -31,7 +31,7 @@ For example,
 
 `mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 28 -B 6`
 
-# Exapmles
+# Screenshots
 
 <p align="center"><img src="example.png">desktop</p>
 
