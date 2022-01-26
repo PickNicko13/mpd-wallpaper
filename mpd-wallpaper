@@ -11,6 +11,7 @@ border_color="#ffffff"
 bottom_indent=0
 top_indent=0
 fallback_image=0
+blur_resolution="300x300"
 notify=false
 
 resolution=$( xdpyinfo | grep -P -o '[0-9]*x[0-9]* pixels' | cut -f1 -d' ' )
@@ -22,10 +23,11 @@ usage(){
 echo "Usage:  $0 -f fallback_image [-b bottom_indent] [-B border] [-t top_indent]"
 echo "	-b: indent bottom_indent pixels to accomodate for the bottom bar. Default: 0"
 echo "	-B: add the specified amount of pixels around the cover to separate it. Default: 0"
+echo "	-r: blur resolution (ImageMagick geometry). Default: 300x300"
 echo "	-t: indent top_indent pixels to accomodate for the bar. Default: 0"
 }
 
-while getopts ":hnb:B:f:t:" arg; do
+while getopts ":hnb:B:f:r:t:" arg; do
 	case $arg in
 		b) # bottom bar size
 			bottom_indent=${OPTARG}
@@ -43,6 +45,9 @@ while getopts ":hnb:B:f:t:" arg; do
 		;;
 		n) # enable notifications
 			notify=true
+		;;
+		r) # blur resolution
+			blur_resolution=${OPTARG}
 		;;
 		t) # top bar size
 			top_indent=${OPTARG}
@@ -118,7 +123,7 @@ set_wallpaper(){
 			border_color=$(convert "$cover_file" -scale 200x200! +dither -colors 50 -format "%c" histogram:info: | sort | cut -d' ' -f 7 | head -n 1)
 		fi
 		magick -colorspace sRGB \
-			\( "$cover_file" -filter Triangle +repage -colorspace sRGB -resize 300x300 -blur 0x2 -function Polynomial '0.5,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
+			\( "$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution -blur 0x2 -function Polynomial '0.5,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
 			\( "$cover_file" -filter Hermite +repage -colorspace sRGB -resize $(($width-2*$border))x$(($height-$top_indent-$bottom_indent-2*$border)) -bordercolor "$border_color" -border $border -background none -gravity south -extent $resolution-0-$bottom_indent \) \
 			-layers Flatten -quality 0 /tmp/background.png
 		# set wallpaper
