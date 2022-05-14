@@ -6,7 +6,7 @@ as the wallpaper of your desktop.
 
 It's kinda clever, though, so unlike kunst it gets your music path from the mpd config.
 
-But it expects you to have a bar at the top, so it's kinda dumb, too.
+Note that it can't handle absolute paths (they are only used if you connect to mpd via unix socket and play a track that isn't in your library)
 
 # Introduction
 One day I was thinking something like "Huh, it'd be cool to have some kind of album art in ncmpcpp... But setting up image display in alacritty is probably complicated... Hey, there is kunst, which also displays the artwork in a notification and activates on ncmpcpp's song change activity and there's an option to make the alacritty's background a bit transparent, so it'd be great to have a script to change the wallpaper to the playing track's artwork!"
@@ -16,7 +16,7 @@ and make it launch at system startup, so here we are.
 
 # Requirements
 - bash
-- dunst (optional, used for notifications)
+- dunst + dunstify (optional, used for notifications)
 - feh
 - imagemagick
 - kid3-cli
@@ -25,11 +25,11 @@ and make it launch at system startup, so here we are.
 - xorg-xdpyinfo
 
 # Usage
-`mpd-wallpaper -f fallback.png [-b bottom_indent] [-B border] [-n] [-t top_indent]`
+`mpd-wallpaper -f fallback_image [-h] [-n] [-b bottom_indent] [-B border] [-m args] [-r HxV] [-t top_indent]`
 
 For example, 
 
-`mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 28 -B 6`
+`mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 22 -B 6 -m `
 
 # Screenshots
 
