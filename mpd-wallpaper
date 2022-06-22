@@ -25,6 +25,7 @@ echo "Usage:  $0 -f fallback_image [-d] [-h] [-n] [-b bottom_indent] [-B border]
 echo "	-f: image to use if cover was not found"
 echo "	-b: indent bottom_indent pixels to accomodate for the bottom bar. Default: 0"
 echo "	-B: add the specified amount of pixels around the cover to separate it. Default: 0"
+echo "	-d: enable dithering"
 echo "	-h: show this help message"
 echo "	-n: enable dunst notifications (requires dunstify)"
 echo "	-m: add custom mpc arguments (useful if you have to specify your mpd address or password"
