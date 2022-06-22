@@ -35,8 +35,6 @@ For example,
 
 `mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 22 -B 6 -m -d`
 
-P.S.: this script with dithering enabled plays nicely with [fake dither for picom](https://github.com/PickNicko13/picom-o8dither).
-
 # Screenshots
 
 <p align="center"><img src="example.png">desktop</p>
@@ -47,4 +45,4 @@ P.S.: this script with dithering enabled plays nicely with [fake dither for pico
 
 ## Notes
 
-
+P.S.: this script with dithering enabled plays nicely with [fake dither for picom](https://github.com/PickNicko13/picom-o8dither).
