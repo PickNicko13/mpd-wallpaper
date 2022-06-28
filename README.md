@@ -29,11 +29,11 @@ and make it launch at system startup, so here we are.
 
 # Usage
 
-`mpd-wallpaper -f fallback_image [-d] [-h] [-n] [-b bottom_indent] [-B border] [-m args] [-r HxV] [-t top_indent]`
+`mpd-wallpaper -f fallback_image [-h] [-n] [-b bottom_indent] [-B border] [-d ditherlevel] [-m args] [-r HxV] [-t top_indent]`
 
 For example, 
 
-`mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 22 -B 6 -m -d`
+`mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 22 -B 6 -m -d 6`
 
 # Screenshots
 
