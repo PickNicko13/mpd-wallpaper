@@ -29,11 +29,12 @@ echo "	-d: enable dithering and set level (recommended 4-24, min 2)"
 echo "	-h: show this help message"
 echo "	-n: enable dunst notifications (requires dunstify)"
 echo "	-m: add custom mpc arguments (useful if you have to specify your mpd address or password"
+echo "	-p: set path to save blurred image to (e.g. when you want to use it on lockscreen)"
 echo "	-r: blur resolution (ImageMagick geometry). Default: 300x300"
 echo "	-t: indent top_indent pixels to accomodate for the bar. Default: 0"
 }
 
-while getopts ":hnb:B:d:f:m:r:t:" arg; do
+while getopts ":hnb:B:d:f:m:p:r:t:" arg; do
 	case $arg in
 		b) # bottom bar size
 			bottom_indent=${OPTARG}
@@ -52,8 +53,11 @@ while getopts ":hnb:B:d:f:m:r:t:" arg; do
 				exit 1
 			fi
 		;;
-		m) #mpc args
+		m) # mpc args
 			mpc_args="${OPTARG}"
+		;;
+		p) # blurred image path
+			blurred_path="${OPTARG}"
 		;;
 		n) # enable notifications
 			notify=true
@@ -71,7 +75,7 @@ while getopts ":hnb:B:d:f:m:r:t:" arg; do
 	esac
 done
 
-if [ $fallback_image == 0 ]; then
+if [ "$fallback_image" == 0 ]; then
 	usage
 	exit 1
 fi
@@ -128,6 +132,13 @@ get_cover(){
 }
 
 set_wallpaper(){
+		# if desired, save blurred image
+		if test $blurred_path; then
+			magick -colorspace sRGB \
+			"$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution +repage -gravity center -crop $width:$height^ +repage -blur 0x2 -function Polynomial '0.4,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \
+			-quality 30 -define webp:lossless=true $blurred_path &
+		fi
+
 		# transformations for better visuals
 		if [ $border != 0 ]; then
 			# these parameters were chosen by trial and error, but may not work for you
@@ -136,16 +147,17 @@ set_wallpaper(){
 		fi
 		if test $dither -ge 2; then
 			magick -colorspace sRGB \
-			\( "$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution -blur 0x2 -function Polynomial '0.5,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
+			\( "$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution +repage -gravity center -crop $width:$height^ +repage -blur 0x2 -function Polynomial '0.5,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
 			\( "$cover_file" -filter Hermite +repage -colorspace sRGB -resize $(($width-2*$border))x$(($height-$top_indent-$bottom_indent-2*$border)) -bordercolor "$border_color" -border $border -background none -gravity south -extent $resolution-0-$bottom_indent \) \
 			-colorspace hsv -ordered-dither o8x8,$dither \
 			-layers Flatten -quality 0 /tmp/background.png
 		else
 			magick -colorspace sRGB \
-			\( "$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution -blur 0x2 -function Polynomial '0.5,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
+			\( "$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution +repage -gravity center -crop $width:$height^ +repage -blur 0x2 -function Polynomial '0.5,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
 			\( "$cover_file" -filter Hermite +repage -colorspace sRGB -resize $(($width-2*$border))x$(($height-$top_indent-$bottom_indent-2*$border)) -bordercolor "$border_color" -border $border -background none -gravity south -extent $resolution-0-$bottom_indent \) \
 			-layers Flatten -quality 0 /tmp/background.png
 		fi
+
 		# set wallpaper
 		feh --no-fehbg --bg-center "/tmp/background.png"
 }
