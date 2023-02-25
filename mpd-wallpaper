@@ -22,7 +22,7 @@ height=${resolution#*x}
 musicpath=$( grep 'music_directory' $HOME/.mpd/mpd.conf | cut -f2 -d' ' | sed "s+\"++g ; s+~+$HOME+" )
 
 usage(){
-echo "Usage:  $0 -f fallback_image [-h] [-n] [-b bottom_indent] [-B border] [-d ditherlevel] [-D downscale] [-m args] [-r HxV] [-t top_indent]"
+echo "Usage:  $0 -f fallback_image [-h] [-n] [-b bottom_indent] [-B border] [-d ditherlevel] [-D downscale] [-m args] [p path] [-r HxV] [-t top_indent]"
 echo "	-f: image to use if cover was not found"
 echo "	-b: indent bottom_indent pixels to accomodate for the bottom bar. Default: 0"
 echo "	-B: add the specified amount of pixels around the cover to separate it. Default: 0"
@@ -87,6 +87,10 @@ fi
 
 if [ "$downscaling" -ge 2 ]; then
 	additional_processing="$additional_processing -filter Point -resize ${downscaling}00%"
+
+	real_resolution=$resolution
+	echo $real_resolution
+
 	width=$(($width/$downscaling))
 	height=$(($height/$downscaling))
 	resolution=${width}x${height}
@@ -151,7 +155,7 @@ set_wallpaper(){
 		# if desired, save blurred image
 		if test $blurred_path; then
 			magick -colorspace sRGB \
-			"$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution +repage -gravity center -crop $width:$height^ +repage -blur 0x2 -function Polynomial '0.4,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \
+			"$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution +repage -gravity center -crop $width:$height^ +repage -blur 0x2 -function Polynomial '0.4,0' -gravity Center -resize $real_resolution^ -crop $real_resolution+0+0 +repage \
 			-quality 30 -define webp:lossless=true $blurred_path &
 		fi
 
