@@ -14,6 +14,7 @@ fallback_image=0
 blur_resolution="300x300"
 notify=false
 dither=0
+downscaling=0
 
 resolution=$( xdpyinfo | grep -P -o '[0-9]*x[0-9]* pixels' | cut -f1 -d' ' )
 width=${resolution%x*}
@@ -21,11 +22,12 @@ height=${resolution#*x}
 musicpath=$( grep 'music_directory' $HOME/.mpd/mpd.conf | cut -f2 -d' ' | sed "s+\"++g ; s+~+$HOME+" )
 
 usage(){
-echo "Usage:  $0 -f fallback_image [-h] [-n] [-b bottom_indent] [-B border] [-d ditherlevel] [-m args] [-r HxV] [-t top_indent]"
+echo "Usage:  $0 -f fallback_image [-h] [-n] [-b bottom_indent] [-B border] [-d ditherlevel] [-D downscale] [-m args] [-r HxV] [-t top_indent]"
 echo "	-f: image to use if cover was not found"
 echo "	-b: indent bottom_indent pixels to accomodate for the bottom bar. Default: 0"
 echo "	-B: add the specified amount of pixels around the cover to separate it. Default: 0"
 echo "	-d: enable dithering and set level (recommended 4-24, min 2)"
+echo "	-d: enable downscaling and set level (recommended 2-3, min 2)"
 echo "	-h: show this help message"
 echo "	-n: enable dunst notifications (requires dunstify)"
 echo "	-m: add custom mpc arguments (useful if you have to specify your mpd address or password"
@@ -34,7 +36,7 @@ echo "	-r: blur resolution (ImageMagick geometry). Default: 300x300"
 echo "	-t: indent top_indent pixels to accomodate for the bar. Default: 0"
 }
 
-while getopts ":hnb:B:d:f:m:p:r:t:" arg; do
+while getopts ":hnb:B:d:D:f:m:p:r:t:" arg; do
 	case $arg in
 		b) # bottom bar size
 			bottom_indent=${OPTARG}
@@ -44,6 +46,9 @@ while getopts ":hnb:B:d:f:m:p:r:t:" arg; do
 		;;
 		d) # dither level
 			dither=${OPTARG}
+		;;
+		D) # downscaling level
+			downscaling=${OPTARG}
 		;;
 		f) # fallback image
 			fallback_image=${OPTARG}
@@ -78,6 +83,17 @@ done
 if [ "$fallback_image" == 0 ]; then
 	usage
 	exit 1
+fi
+
+if [ "$downscaling" -ge 2 ]; then
+	additional_processing="$additional_processing -filter Point -resize ${downscaling}00%"
+	width=$(($width/$downscaling))
+	height=$(($height/$downscaling))
+	resolution=${width}x${height}
+
+	bottom_indent=$(($bottom_indent/$downscaling))
+	top_indent=$(($top_indent/$downscaling))
+	border=$(($border/$downscaling))
 fi
 
 same_cover(){
@@ -149,13 +165,13 @@ set_wallpaper(){
 			magick -colorspace sRGB \
 			\( "$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution +repage -gravity center -crop $width:$height^ +repage -blur 0x2 -function Polynomial '0.5,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
 			\( "$cover_file" -filter Hermite +repage -colorspace sRGB -resize $(($width-2*$border))x$(($height-$top_indent-$bottom_indent-2*$border)) -bordercolor "$border_color" -border $border -background none -gravity south -extent $resolution-0-$bottom_indent \) \
-			-colorspace hsv -ordered-dither o8x8,$dither \
-			-layers Flatten -quality 0 /tmp/background.png
+			-ordered-dither o8x8,$dither \
+			-layers Flatten $additional_processing -quality 0 /tmp/background.png
 		else
 			magick -colorspace sRGB \
 			\( "$cover_file" -filter Triangle +repage -colorspace sRGB -resize $blur_resolution +repage -gravity center -crop $width:$height^ +repage -blur 0x2 -function Polynomial '0.5,0' -gravity Center -resize $resolution^ -crop $resolution+0+0 +repage \) \
 			\( "$cover_file" -filter Hermite +repage -colorspace sRGB -resize $(($width-2*$border))x$(($height-$top_indent-$bottom_indent-2*$border)) -bordercolor "$border_color" -border $border -background none -gravity south -extent $resolution-0-$bottom_indent \) \
-			-layers Flatten -quality 0 /tmp/background.png
+			-layers Flatten $additional_processing -quality 0 /tmp/background.png
 		fi
 
 		# set wallpaper
