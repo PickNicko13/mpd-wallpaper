@@ -29,11 +29,11 @@ and make it launch at system startup, so here we are.
 
 # Usage
 
-`mpd-wallpaper -f fallback_image [-h] [-n] [-b bottom_indent] [-B border] [-d ditherlevel] [-m args] [-r HxV] [-t top_indent]`
+`mpd-wallpaper -f fallback_image [-h] [-n] [-b bottom_indent] [-B border] [-d ditherlevel] [-D downscaling] [-m args] [-r HxV] [-t top_indent]`
 
 For example, 
 
-`mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 22 -B 6 -m -d 6`
+`mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 22 -B 4 -m -d 8 -D 2`
 
 # Screenshots
 
@@ -45,4 +45,4 @@ For example,
 
 ## Notes
 
-P.S.: this script with dithering enabled plays nicely with [fake dither for picom](https://github.com/PickNicko13/picom-o8dither).
+P.S.: this script with dithering and downscaling enabled plays very nicely with [dithered fading effects for picom](https://github.com/PickNicko13/picom-o8dither). Or, if you're feeling particularly old-school, you can even use it with both dithered fading and fake dithering!
