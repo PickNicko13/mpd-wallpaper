@@ -25,7 +25,6 @@ and make it launch at system startup, so here we are.
 - kid3-cli
 - mpc
 - mpd (duh)
-- xorg-xdpyinfo
 
 # Usage
 

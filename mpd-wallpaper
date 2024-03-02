@@ -16,7 +16,7 @@ notify=false
 dither=0
 downscaling=0
 
-resolution=$( xdpyinfo | grep -P -o '[0-9]*x[0-9]* pixels' | cut -f1 -d' ' )
+resolution=$( xrandr | grep 'connected primary' | cut -f4 -d' ' | grep -oe '^[^+]*' )
 width=${resolution%x*}
 height=${resolution#*x}
 musicpath=$( grep 'music_directory' $HOME/.mpd/mpd.conf | cut -f2 -d' ' | sed "s+\"++g ; s+~+$HOME+" )
