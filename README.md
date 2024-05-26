@@ -18,13 +18,23 @@ and make it launch at system startup, so here we are.
 
 # Requirements
 
+Common:
+
 - bash
-- dunst + dunstify (optional, used for notifications)
-- feh
+- dunst (*optional, used for notifications)
 - imagemagick
 - kid3-cli
 - mpc
 - mpd (duh)
+
+X11:
+
+- feh
+
+Wayland:
+
+- swww
+- wlr-randr
 
 # Usage
 
@@ -33,6 +43,13 @@ and make it launch at system startup, so here we are.
 For example, 
 
 `mpd-wallpaper -f ~/Pictures/Wallpapers/GiTS/1.png -n -t 22 -B 4 -m -d 8 -D 2`
+
+On wayland, you will also have to have the swww daemon running.
+
+To avoid overusing the launch options, swww is launched without any options.
+If you want to change them, simply set the corresponding environment variables.
+You can get the list of available options and their corresponding environment
+variable names by running `swww img --help`.
 
 # Screenshots
 
