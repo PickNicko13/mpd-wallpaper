@@ -16,7 +16,11 @@ notify=false
 dither=0
 downscaling=0
 
-resolution=$( xrandr | grep 'connected primary' | cut -f4 -d' ' | grep -oe '^[^+]*' )
+if [[ $XDG_SESSION_TYPE == "x11" ]]; then
+	resolution=$( xrandr | grep 'connected primary' | cut -f4 -d' ' | grep -oe '^[^+]*' )
+else
+	resolution=$( wlr-randr | grep 'current' | head -n1 | cut -f5 -d' ' )
+fi
 width=${resolution%x*}
 height=${resolution#*x}
 musicpath=$( grep 'music_directory' $HOME/.mpd/mpd.conf | cut -f2 -d' ' | sed "s+\"++g ; s+~+$HOME+" )
@@ -179,7 +183,11 @@ set_wallpaper(){
 		fi
 
 		# set wallpaper
-		feh --no-fehbg --bg-center "/tmp/background.png"
+		if [[ $XDG_SESSION_TYPE == "x11" ]]; then
+			feh --no-fehbg --bg-center "/tmp/background.png"
+		else
+			swww img "/tmp/background.png"
+		fi
 }
 
 while true; do
@@ -213,7 +221,12 @@ while true; do
 			if $notify; then
 				dunstify -u critical --replace=169 "TRACK ADDED TO THE broken.txt"
 			fi
-			feh --no-fehbg --bg-center "$fallback_image"
+
+			if [[ $XDG_SESSION_TYPE == "x11" ]]; then
+				feh --no-fehbg --bg-center "/tmp/background.png"
+			else
+				swww img "/tmp/background.png"
+			fi
 		fi
 		previous_cover_file="$cover_file"
 		echo took $(echo "scale=6;$(date +'%s.%N')-$starttime" | bc)s
