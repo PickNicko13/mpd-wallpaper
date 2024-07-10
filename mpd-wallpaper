@@ -167,7 +167,7 @@ set_wallpaper(){
 		if [ $border != 0 ]; then
 			# these parameters were chosen by trial and error, but may not work for you
 			# feel free to play with image size and color count
-			border_color=$(convert "$cover_file" -scale 200x200! +dither -colors 50 -format "%c" histogram:info: | sort -n | head -n 1 | awk '{print $3}')
+			border_color=$(magick "$cover_file" -scale 200x200! +dither -colors 50 -format "%c" histogram:info: | sort -n | head -n 1 | awk '{print $3}')
 		fi
 		if test $dither -ge 2; then
 			magick -colorspace sRGB \
